@@ -37,36 +37,38 @@ local ped = nil
 
 function SendToCharacterScreen(Bool)
     inCharacterMenu = Bool
-    if inCharacterMenu then
-        TriggerEvent('mercy-weathersync/client/set-default-weather', 21)
-        SetEntityCoords(PlayerPedId(), MULTICHARACTER.playerCoord)
-        FreezeEntityPosition(PlayerPedId(), true)
-
-        DoCharacterCam(true)
-
-        SetEntityCoords(PlayerPedId(), MULTICHARACTER.playerCoord)
-        RequestCollisionAtCoord(MULTICHARACTER.playerCoord.x, MULTICHARACTER.playerCoord.y, MULTICHARACTER.playerCoord.z)
-        while not HasCollisionLoadedAroundEntity(PlayerPedId()) do -- Added as a 'hotfix' for falling through the ground because collision wasn't loaded yet
+    Citizen.SetTimeout(500, function()
+        if inCharacterMenu then
+            TriggerEvent('mercy-weathersync/client/set-default-weather', 21)
             SetEntityCoords(PlayerPedId(), MULTICHARACTER.playerCoord)
-            Citizen.Wait(1)
+            FreezeEntityPosition(PlayerPedId(), true)
+
+            DoCharacterCam(true)
+
+            SetEntityCoords(PlayerPedId(), MULTICHARACTER.playerCoord)
+            RequestCollisionAtCoord(MULTICHARACTER.playerCoord.x, MULTICHARACTER.playerCoord.y, MULTICHARACTER.playerCoord.z)
+            while not HasCollisionLoadedAroundEntity(PlayerPedId()) do -- Added as a 'hotfix' for falling through the ground because collision wasn't loaded yet
+                SetEntityCoords(PlayerPedId(), MULTICHARACTER.playerCoord)
+                Citizen.Wait(1)
+            end
+        
+            BuildCharacterProps()
+        
+            ShutdownLoadingScreen()
+            ShutdownLoadingScreenNui()
+        
+            local Characters = CallbackModule.SendCallback('mercy-ui/server/characters-get')
+            SetNuiFocus(true, true)
+            SendUIMessage('Characters', 'LoadCharacters', {
+                characters = Characters
+            })
+        else
+            DoCharacterCam(false)
+            RemoveCharacterProps()
+            SetNuiFocus(false, false)
+            FreezeEntityPosition(PlayerPedId(), false)
         end
-        
-        BuildCharacterProps()
-        
-        ShutdownLoadingScreen()
-        ShutdownLoadingScreenNui()
-        
-        local Characters = CallbackModule.SendCallback('mercy-ui/server/characters-get')
-        SetNuiFocus(true, true)
-        SendUIMessage('Characters', 'LoadCharacters', {
-            characters = Characters
-        })
-    else
-        DoCharacterCam(false)
-        RemoveCharacterProps()
-        SetNuiFocus(false, false)
-        FreezeEntityPosition(PlayerPedId(), false)
-    end
+    end)
 end
 
 
@@ -74,14 +76,18 @@ function BuildCharacterProps()
     RequestModel(GetHashKey('mp_m_freemode_01'))
     RequestModel(GetHashKey('mp_f_freemode_01'))
 
+    while CallbackModule == nil do
+        Citizen.Wait(100)
+    end
+
     for i = 1, 4, 1 do
         local cid = i
         local Anim = PedAnims[i]
-        -- local prom = promise.new()
         local SkinData = CallbackModule.SendCallback('mercy-ui/server/characters/get-skin', cid)
 
         local Model = SkinData.Model ~= nil and SkinData.Model or GetHashKey("m_character_select")
         local IsCustomSkin = Config.CustomSkins[Model] or false
+
         if IsCustomSkin then 
             local ModelLoaded = FunctionsModule.RequestModel(Model)
             if ModelLoaded then
@@ -90,7 +96,6 @@ function BuildCharacterProps()
                 SetEntityHeading(Ped, MULTICHARACTER.peds[cid].h)
                 -- SetEntityAlpha(Ped, 205, false)
                 
-                -- print('Applying skin to ped', json.encode(SkinData), Ped)
                 TriggerEvent('mercy-clothing/client/load-clothing', SkinData, Ped)
                 
                 if Anim then
@@ -114,7 +119,6 @@ function BuildCharacterProps()
                     SetEntityAlpha(Ped, 205, false)
                 end
     
-                -- print('Applying skin to ped', json.encode(SkinData), Ped)
                 TriggerEvent('mercy-clothing/client/load-clothing', SkinData, Ped)
 
                 if Anim then
@@ -128,9 +132,8 @@ function BuildCharacterProps()
                 CharacterProps['Ped'..cid] = Ped
             end
         end
-        -- prom:resolve()
-        -- Citizen.Await(prom)
     end
+
     Citizen.Wait(250)
     DoScreenFadeIn(500)
 end

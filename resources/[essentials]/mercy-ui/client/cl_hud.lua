@@ -102,6 +102,9 @@ RegisterNetEvent("mercy-threads/stopped-talking", function()
 end)
 
 RegisterNetEvent("mercy-threads/started-talking", function()
+    if not exports['mercy-voice'] then
+        return print('Tried to enable voice hud component but mercy-voice export was not found.')
+    end
     SendUIMessage('Hud', 'ToggleComponentActive', {Type = 'Voice', Bool = true, OnRadio = exports['mercy-voice']:TalkingOnRadio()})
 end)
 
@@ -196,7 +199,7 @@ RegisterNetEvent("mercy-threads/entered-vehicle", function()
                     end
                     ShowingVehicleHud = true
                     DisplayRadar(ShowingVehicleHud)
-                    exports['mercy-ui']:SendUIMessage('Hud', 'SetVehicleHud', {Bool = ShowingVehicleHud, Aircraft = IsAircraft, Waypoint = WaypointDistance ~= nil and WaypointDistance or 0})
+                    exports['mercy-ui']:SendUIMessage('Hud', 'SetVehicleHud', {Bool = ShowingVehicleHud, Aircraft = IsPedInAnyHeli(PlayerPedId()) or IsPedInAnyPlane(PlayerPedId()), Waypoint = WaypointDistance ~= nil and WaypointDistance or 0})
                 end
                 
                 local Plate, VehicleClass, HasBelt = GetVehicleNumberPlateText(Vehicle), GetVehicleClass(Vehicle), exports['mercy-vehicles']:GetBeltStatus()
@@ -252,6 +255,7 @@ RegisterNetEvent("mercy-threads/exited-vehicle", function()
 end)
 
 RegisterNetEvent('mercy-preferences/client/update', function(PreferencesData)
+    if not exports['mercy-inventory'] then return end
     exports['mercy-ui']:SendUIMessage('Hud', 'SetHudPreferences', {
         Prefs = PreferencesData.Hud,
         Values = Config.HudValues,

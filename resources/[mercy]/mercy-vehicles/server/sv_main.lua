@@ -140,7 +140,7 @@ Citizen.CreateThread(function()
                         end
 
                         -- Check if in Depot
-                        if Vehicle[1].garage == 'depot' then
+                        if Vehicle[1].garage == 'depot' and Vehicle[1].state == 'In' then
                             Cb({Config.DepotSpots[1], 'Vehicle is in depot.'})
                         else
                             Cb(false)
@@ -231,7 +231,7 @@ Citizen.CreateThread(function()
     CallbackModule.CreateCallback('mercy-vehicles/server/get-depot-vehicles', function(Source, Cb)
         local Player = PlayerModule.GetPlayerBySource(Source)
         local DepotVehs = {}
-        DatabaseModule.Execute("SELECT * FROM player_vehicles WHERE garage = ? AND citizenid = ?", {'depot', Player.PlayerData.CitizenId}, function(VehData)
+        DatabaseModule.Execute("SELECT * FROM player_vehicles WHERE garage = ? AND state = ? AND citizenid = ?", {'depot', 'In', Player.PlayerData.CitizenId}, function(VehData)
             if VehData ~= nil and VehData[1] ~= nil then
                 for k, v in pairs(VehData) do
                     if v.impounddata ~= nil then
@@ -389,7 +389,7 @@ RegisterNetEvent("mercy-vehicles/server/depot-vehicle", function(NetId, ImpoundI
             }
             DatabaseModule.Update("UPDATE player_vehicles SET garage = ?, state = ?, impounddata = ? WHERE plate = ? ", {
                 'depot', 
-                'out', 
+                'In', 
                 json.encode(ImpoundData),
                 Plate,
             }, function(Result)
@@ -408,6 +408,32 @@ RegisterNetEvent("mercy-vehicles/server/depot-vehicle", function(NetId, ImpoundI
             DeleteEntity(Vehicle)
         end
     end, true)
+end)
+
+AddEventHandler('onResourceStart', function(Resource)
+    if Resource == GetCurrentResourceName() then
+        while DatabaseModule == nil do Citizen.Wait(10) end
+        DatabaseModule.Execute('SELECT state FROM player_vehicles WHERE garage = ? AND state = ?', {
+            'depot',
+            'Out'
+        }, function(Result)
+            if Result[1] == nil then return end
+            local ImpoundData = {
+                Reason = "Illegal Parking.",
+                Fee = 200,
+                Strikes = 0,
+                RetainedUntil = os.time(),
+                ImpoundDate = os.date("%d/%m/%Y %H:%M", os.time()),
+                Plate = Result.plate,
+                Issuer = "LSPD",
+                ReleaseTxt = os.date("%d/%m/%Y %H:%M", os.time()), -- 4 hours default
+                Vehicle = Result.vehicle,
+                VIN = Result.vin,
+            }
+            
+            DatabaseModule.Update('UPDATE player_vehicles SET state = ?, impounddata = ? WHERE garage = ? AND state = ?', { 'In', json.encode(ImpoundData), 'depot', 'Out' })
+        end)
+    end
 end)
 
 -- Metas
@@ -461,6 +487,7 @@ RegisterNetEvent("mercy-vehicles/server/set-keys", function(Plate, Bool, Citizen
         if Config.VehicleKeys[Plate] ~= nil then
             Config.VehicleKeys[Plate][Player.PlayerData.CitizenId] = Bool
         else
+            if Plate == nil then return end
             Config.VehicleKeys[Plate] = {}
             Config.VehicleKeys[Plate][Player.PlayerData.CitizenId] = Bool
         end

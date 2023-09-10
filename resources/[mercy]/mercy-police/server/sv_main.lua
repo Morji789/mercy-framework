@@ -32,16 +32,16 @@ CreateThread(function()
 
     CallbackModule.CreateCallback('mercy-police/server/get-all-cops-db', function(Source, Cb)
         local Cops = {}
-        local Promise = promise:new()
         DatabaseModule.Execute("SELECT * FROM players", {}, function(Players)
             if Players ~= nil then
                 -- Get From Database
                 for k, v in pairs(Players) do
                     local JobInfo = json.decode(v.Job)
+		    local CharInfo = json.decode(v.CharInfo)
                     if JobInfo.Name == 'police' then
                         local Cop = {}
                         Cop.CitizenId = v.CitizenId
-                        Cop.Name = v.Name
+                        Cop.Name = CharInfo.Firstname..' '..CharInfo.Lastname
                         Cop.Job = JobInfo
                         table.insert(Cops, Cop)
                     end
@@ -68,10 +68,9 @@ CreateThread(function()
                         end
                     end
                 end
-                Promise:resolve(Cops)
             end
-        end)
-        Cb(Citizen.Await(Promise))
+        end, true)
+        Cb(Cops)
     end)
 
     CallbackModule.CreateCallback('mercy-police/server/get-active-cops', function(Source, Cb)
@@ -157,19 +156,30 @@ CreateThread(function()
 
     -- [ Commands ] --
 
+    CommandsModule.Add("311", "Police chat", {{Name="Message", Help="Message"}}, false, function(source, args)
+        local Player = PlayerModule.GetPlayerBySource(source)
+        local MessageData = {}
+        MessageData['Id'] = source
+        MessageData['Who'] = Player.PlayerData.CharInfo.Firstname..' | '..Player.PlayerData.CharInfo.Lastname..' # '..Player.PlayerData.CharInfo.PhoneNumber
+        MessageData['Message'] = table.concat(args, ' ')
+        TriggerClientEvent('mercy-police/client/send-311', -1, MessageData)
+    end)
+
     CommandsModule.Add("911", "Call emergency services", {{Name="Message", Help="Message"}}, false, function(source, args)
         local Player = PlayerModule.GetPlayerBySource(source)
         local CallData = {}
         CallData['Id'] = source
-        CallData['Who'] = Player.PlayerData.CharInfo.Firstname..' '..Player.PlayerData.CharInfo.Lastname
+        CallData['Who'] = Player.PlayerData.CharInfo.Firstname..' | '..Player.PlayerData.CharInfo.Lastname..' # '..Player.PlayerData.CharInfo.PhoneNumber
         CallData['Message'] = table.concat(args, ' ')
         TriggerClientEvent('mercy-police/client/send-911', source, CallData, false)
+        -- TriggerClientEvent('mercy-police/client/send-911-chat', -1, CallData, false) -- Enable to have chat alerts
     end)
 
     CommandsModule.Add("911a", "Call emergency services anonymously", {{Name="Message", Help="Message"}}, false, function(source, args)
         local CallData = {}
         CallData['Message'] = table.concat(args, ' ')
         TriggerClientEvent('mercy-police/client/send-911', source, CallData, true)
+        -- TriggerClientEvent('mercy-police/client/send-911-chat', -1, CallData, true) -- Enable to have chat alerts
     end)
 
     -- CommandsModule.Add("911r", "Reply on a 911 call", {{Name="Id", Help="Id"}, {Name="Message", Help="Message"}}, false, function(source, args)
@@ -195,13 +205,7 @@ CreateThread(function()
     --     end
     -- end)
 
-    CommandsModule.Add("callsign", "View callsign", {}, false, function(source, args)
-        local Player = PlayerModule.GetPlayerBySource(source)
-        if Player.PlayerData.Job.Name ~= 'police' then return end
-        TriggerClientEvent('mercy-chat/client/post-message', source, 'DEPARTMENT', Player.PlayerData.Job.Callsign, 'warning')
-    end)
-
-    CommandsModule.Add("setcallsign", "Set callsign", {{Name="Callsign", Help="Callsign"}}, false, function(source, args)
+    CommandsModule.Add("callsign", "Assign yourself a callsign.", {{Name="Callsign", Help="Callsign"}}, false, function(source, args)
         local Player = PlayerModule.GetPlayerBySource(source)
         local Callsign = args[1]
         if Callsign ~= nil then
@@ -224,11 +228,38 @@ CreateThread(function()
         local Player = PlayerModule.GetPlayerBySource(source)
         local Department = args[1]
         if Department ~= nil and Department == 'LSPD' or Department == 'BCSO' or Department == 'SASP' then
-            if Player.PlayerData.Job.Name == 'police' or Player.PlayerData.Job.Name == 'ems' and Player.PlayerData.Job.Duty then
+            if Player.PlayerData.Job.Name == 'police' and Player.PlayerData.Job.Duty then
                 Player.Functions.SetDepartment(Department)
                 Player.Functions.Notify('sign-changed', 'Department succesfully changed. You now on the '..Department..'  department.', 'success')
             else
                 Player.Functions.Notify('no-perm', 'No Permission..', 'error')
+            end
+        end
+    end)
+
+    CommandsModule.Add("setrank", "Set someone's rank", {{Name="ID", Help="ID"}, {Name="Rank", Help="Rank"}}, false, function(source, args)
+        local Player = PlayerModule.GetPlayerBySource(source)
+        local Target = PlayerModule.GetPlayerBySource(tonumber(args[1]))
+	if Target == nil then return Player.Functions.Notify('no-player', 'This id does not exist.', 'error') end
+        local Rank = args[2]:gsub("^%l", string.upper)
+        if Player.PlayerData.Job['HighCommand'] then
+            if Player.PlayerData.Job.Name == 'police' and Player.PlayerData.Job.Duty then
+                if Target.PlayerData.Job.Name == 'police' then
+                    if Rank ~= nil and Rank == 'Officer' or Rank == 'Detective' or Rank == 'Corporal' or Rank == 'Sergeant' or Rank == 'Lieutenant' or Rank == 'Captain' or Rank == 'Chief' then
+                        if Target.PlayerData.Source == source then
+                            Player.Functions.SetRank(Rank)
+                            Player.Functions.Notify('rank-changed', 'Your rank has been set to '..Rank..'.', 'success')
+                        else
+                            Target.Functions.SetRank(Rank)
+                            Player.Functions.Notify('rank-changed', 'You set the rank of '..Player.PlayerData.CharInfo.Firstname..' '..Player.PlayerData.CharInfo.Lastname..' to '..Rank..'.', 'success')
+                            Target.Functions.Notify('rank-changed', 'Your rank has been set to '..Rank..'.', 'success')
+                        end
+                    else
+                        Player.Functions.Notify('no-perm', 'This rank does not exist.', 'error')
+                    end
+                else
+                    Player.Functions.Notify('no-rank', 'You are not part of the emergency services.', 'error')
+                end
             end
         end
     end)
@@ -247,7 +278,7 @@ CreateThread(function()
                     TargetPlayer.Functions.Notify('got-no-highcom', 'You are no longer highcommand!', 'error')
                     Player.Functions.Notify('no-highcom', 'Person is no longer highcommand!', 'error')
                 end
-                TargetPlayer.Functions.Save()
+                -- TargetPlayer.Functions.Save()
             end
         end
     end, "admin")
@@ -274,7 +305,7 @@ CreateThread(function()
                 TargetPlayer.Functions.Notify('got-hired-off', 'You got hired at the PD!', 'success')
                 Player.Functions.Notify('hired-off', 'You hired '..TargetPlayer.PlayerData.CharInfo.Firstname..' '..TargetPlayer.PlayerData.CharInfo.Lastname..'!', 'success')
                 TargetPlayer.Functions.SetJob('police')
-                TargetPlayer.Functions.Save()
+                -- TargetPlayer.Functions.Save()
             end
         end
     end)
@@ -287,7 +318,7 @@ CreateThread(function()
                 TargetPlayer.Functions.Notify('got-fired-off', 'You got fired!', 'error')
                 Player.Functions.Notify('fired-off', 'You fired '..TargetPlayer.PlayerData.CharInfo.Firstname..' '..TargetPlayer.PlayerData.CharInfo.Lastname..'!', 'success')
                 TargetPlayer.Functions.SetJob('unemployed')
-                TargetPlayer.Functions.Save()
+                -- TargetPlayer.Functions.Save()
             else
                 Player.Functions.Notify('not-police', 'This person is not a police officer!', 'error')
             end
@@ -345,12 +376,11 @@ CreateThread(function()
             Player.Functions.Notify('no-bags', 'You don\'t have any empty evidence bags.', 'error')
         end
     end)
-
             
     EventsModule.RegisterServer("mercy-police/server/set-player-cuffs", function(Source, Cuffed)
         local Player = PlayerModule.GetPlayerBySource(Source)
         Player.Functions.SetMetaData("Handcuffed", Cuffed)
-        TriggerClientEvent('mercy-police/client/set-cuff-state', src, Cuffed)
+        TriggerClientEvent('mercy-police/client/set-cuff-state', Source, Cuffed)
     end)
 
     CallbackModule.CreateCallback("mercy-police/server/get-player-cuffs", function(Source, Cb, Target)
@@ -364,8 +394,10 @@ CreateThread(function()
         local CuffedPlayer = PlayerModule.GetPlayerBySource(tonumber(TargetServer))
         if CuffedPlayer then
             TriggerClientEvent("mercy-police/client/getting-cuffed", CuffedPlayer.PlayerData.Source)
-            TriggerClientEvent("mercy-police/client/do-cuff-anim", Player.PlayerData.Source, 'Cuff', Player.PlayerData.Source)
-            TriggerClientEvent("mercy-police/client/do-cuff-anim", CuffedPlayer.PlayerData.Source, not CuffedPlayer.PlayerData.MetaData['Handcuffed'] and 'Getcuff' or 'Uncuff', Player.PlayerData.Source)
+            TriggerClientEvent("mercy-police/client/do-cuff-anim", Player.PlayerData.Source, CuffedPlayer.PlayerData.MetaData['Handcuffed'] and 'Uncuff' or 'Cuff')
+            if not CuffedPlayer.PlayerData.MetaData['Handcuffed'] then
+                TriggerClientEvent("mercy-police/client/do-cuff-anim", CuffedPlayer.PlayerData.Source, 'Getcuff', Player.PlayerData.Source)
+            end
         else
             Player.Functions.Notify('no-near', 'No person is near you..', 'error')
         end
@@ -562,13 +594,13 @@ RegisterNetEvent("mercy-police/server/clear-blip", function()
 end)
 
 -- Badge
-RegisterNetEvent("mercy-police/server/request-pd-badge", function(Name, Rank, Department, Image)
+RegisterNetEvent("mercy-police/server/request-pd-badge", function(Cid, Image)
     local src = source
-    local Player = PlayerModule.GetPlayerBySource(src)
+    local Player = PlayerModule.GetPlayerByStateId(Cid)
     local Info = {}
-    Info.Name = Name
-    Info.Rank = Rank
-    Info.Department = Department
+    Info.Name = Player.PlayerData.CharInfo.Firstname .. ' ' .. Player.PlayerData.CharInfo.Lastname
+    Info.Rank = Player.PlayerData.Job.Rank
+    Info.Department = Player.PlayerData.Job.Department
     Info.Image = Image
     Player.Functions.AddItem('pdbadge', 1, false, Info, true)
 end)
@@ -615,25 +647,32 @@ end)
 
 RegisterNetEvent("mercy-police/server/get-target-status", function(TargetServer)
     local src = source
-    if not PlayerStatus[TargetServer] then
-        TriggerClientEvent('mercy-chat/client/post-message', src, 'Status', 'None', 'warning')
-    else
-        TriggerClientEvent('mercy-chat/client/post-message', src, 'Status', PlayerStatus[TargetServer].Text, 'warning')
+    local Retval = 'None'
+    if PlayerStatus[TargetServer] ~= nil and next(PlayerStatus[TargetServer]) ~= nil then
+        local ValueTable = { }
+        for k, v in ipairs(PlayerStatus[TargetServer]) do
+            if v.Text:lower() ~= 'gunpowder residue' and v.Text:lower() ~= 'traces of plastic and explosives residue' then
+                ValueTable[#ValueTable+1] = tostring(v.Text)
+            end
+        end
+        Retval = table.concat(ValueTable, "\n")
     end
+    TriggerClientEvent('mercy-chat/client/post-message', src, 'Status', Retval, 'warning')
 end)
 
 RegisterNetEvent("mercy-police/server/gsr-result", function(TargetServer)
     local src = source
     local Retval = 'Nothing found.'
-    if not PlayerStatus[TargetServer] then
-        TriggerClientEvent('mercy-chat/client/post-message', src, 'GSR', 'No GSR found.', 'warning')
-        return
-    end
-    for k, v in pairs(PlayerStatus[TargetServer]) do
-        if v.Text == 'Gunpowder Residue' then
-            Retval = 'Gunshot residue found.'
+    if PlayerStatus[TargetServer] ~= nil and next(PlayerStatus[TargetServer]) ~= nil then
+        local ValueTable = { }
+        for k, v in ipairs(PlayerStatus[TargetServer]) do
+            if v.Text:lower() == 'gunpowder residue' or v.Text:lower() == 'traces of plastic and explosives residue' then
+                ValueTable[#ValueTable+1] = tostring(v.Text)..' found.'
+            end
         end
+        Retval = table.concat(ValueTable, "\n")
     end
+
     TriggerClientEvent('mercy-chat/client/post-message', src, 'GSR', Retval, 'warning')
 end)
 
@@ -642,7 +681,7 @@ RegisterNetEvent("mercy-police/server/finger-result", function(TargetServer)
     local Target = PlayerModule.GetPlayerBySource(TargetServer)
     if not Target then return end
 
-    TriggerClientEvent('mercy-chat/client/post-message', src, 'FINGER', Target.PlayerData.MetaData["FingerPrint"], 'warning')
+    TriggerClientEvent('mercy-chat/client/post-message', src, 'FINGERPRINT', Target.PlayerData.MetaData["FingerPrint"], 'warning')
 end)
 
 -- [ Threads ] --
@@ -657,7 +696,7 @@ Citizen.CreateThread(function()
                 local Player = PlayerModule.GetPlayerBySource(v)
                 if Player then 
                     local RadioItem = Player.Functions.GetItemByName('pdradio')
-                    if ((Player.PlayerData.Job.Name == "police" or Player.PlayerData.Job.Name == "ambulance") and Player.PlayerData.Job.Duty and RadioItem ~= nil) then
+                    if ((Player.PlayerData.Job.Name == "police" or Player.PlayerData.Job.Name == "ems") and Player.PlayerData.Job.Duty and RadioItem ~= nil and RadioItem.Amount >= 1) then
                         table.insert(DutyPlayers, {
                             ServerId = Player.PlayerData.Source, 
                             Coords = GetEntityCoords(GetPlayerPed(v)),
@@ -765,3 +804,9 @@ end
 function CreateRandomId()
     return math.random(11111,99999)
 end
+
+AddEventHandler('playerDropped', function(reason)
+    if PlayerStatus[source] ~= nil then
+        PlayerStatus[source] = nil
+    end
+end)

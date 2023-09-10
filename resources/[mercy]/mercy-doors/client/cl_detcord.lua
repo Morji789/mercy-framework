@@ -4,15 +4,13 @@ local AlreadyDetcording = false
 
 -- [ Events ] --
 
-
-
 RegisterNetEvent('mercy-items/client/used-lockpick', function(isAdvanced)
     Citizen.SetTimeout(450, function()
         local PlayerData = PlayerModule.GetPlayerData()
         local Entity, EntityType, EntityCoords = FunctionsModule.GetEntityPlayerIsLookingAt(4.0, 0.2, 286, PlayerPedId())
         local DoorId = GetTargetDoorId(Entity)
         if DoorId ~= nil then
-            if Config.Doors[DoorId].canLockpick == true then
+            if Config.Doors[DoorId].CanLockpick then
                 local Outcome = exports['mercy-ui']:StartSkillTest(3, { 7, 10 }, { 1000, 1500 }, false)
                 if Outcome then
                     TriggerServerEvent('mercy-doors/server/set-locks', DoorId, 0)
@@ -28,7 +26,6 @@ RegisterNetEvent('mercy-items/client/used-lockpick', function(isAdvanced)
         end
     end)
 end)
-
 
 RegisterNetEvent('mercy-doors/client/used-detcord', function()
     Citizen.SetTimeout(450, function()

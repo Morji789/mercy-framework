@@ -1,6 +1,6 @@
 local CurrentMotorDamage, CurrentBodyDamage, InVehicle = 0, 0, false
 local CurrentBodyEject, InEjectVehicle = 0, false
-local HasBelt, HasHarness = false, false
+HasBelt, HasHarness = false, false
 
 -- [ Code ] --
 
@@ -16,10 +16,11 @@ Citizen.CreateThread(function()
         if not OnPress then return end
         
         local Vehicle = GetVehiclePedIsIn(PlayerPedId())
+        if Vehicle == 0 then return end
+
         local VehicleClass = GetVehicleClass(Vehicle)
         local HarnessLevel = exports['mercy-vehicles']:GetVehicleMeta(Vehicle, "Harness")
 
-        if Vehicle == 0 then return end
 
         if VehicleClass ~= 8 and VehicleClass ~= 13 and VehicleClass ~= 14 and GetEntityModel(Vehicle) ~= GetHashKey('polbike') then
             if HarnessLevel and HarnessLevel > 0.0 then
@@ -34,12 +35,12 @@ Citizen.CreateThread(function()
                         SetVehicleMeta(Vehicle, "Harness", CurrentHarnessLevel - 1.0)
         
                         HasHarness, HasBelt = not HasHarness, false
-                        TriggerEvent('mercy-ui/client/play-sound', HasHarness and 'vehicle.on' or 'vehicle.off', 0.45)
+                        TriggerEvent('mercy-ui/client/play-sound', HasHarness and 'seatbelt-on' or 'seatbelt-off', 0.45)
                     end
                 end)
             else
                 HasBelt = not HasBelt
-                TriggerEvent('mercy-ui/client/play-sound', HasBelt and 'vehicle.on' or 'vehicle.off', 0.45)
+                TriggerEvent('mercy-ui/client/play-sound', HasBelt and 'seatbelt-on' or 'seatbelt-off', 0.45)
             end
         end
     end)
@@ -214,3 +215,12 @@ function GetBeltStatus()
     return HasBelt or HasHarness
 end
 exports('GetBeltStatus', GetBeltStatus)
+
+function SetBeltStatus(Status)
+    TriggerEvent('mercy-ui/client/play-sound', Status and 'seatbelt-on' or 'seatbelt-off', 0.45)
+    HasBelt = Status
+end
+
+function SetHarnessStatus(Status)
+    HasHarness = Status
+end

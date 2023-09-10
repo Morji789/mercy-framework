@@ -37,6 +37,7 @@ function DoThermite(Coords, IsColor)
             TaskPlayAnim(Ped, "anim@heists@ornate_bank@thermal_charge", "cover_eyes_loop", 8.0, 8.0, 6000, 49, 1, 0, 0, 0)
             Citizen.Wait(2000)
             ClearPedTasks(Ped)
+            exports['mercy-inventory']:SetBusyState(false)
             Citizen.Wait(11000)
         end
 
@@ -66,7 +67,7 @@ RegisterNetEvent('mercy-heists/client/thermite/sync-fx', function(Coords, Detcor
         end
     
         SetPtfxAssetNextCall("scr_ornate_heist")
-        local Effect = StartParticleFxLoopedAtCoord("scr_heist_ornate_thermal_burn", Coords.x, Coords.y, Coords.z, 0.0, 0.0, 0.0, 1.0, false, false, false, false)
+        local Effect = StartParticleFxLoopedAtCoord("scr_heist_ornate_thermal_burn", Coords.x, Coords.y + 1.0, Coords.z, 0.0, 0.0, 0.0, 1.0, false, false, false, false)
         Citizen.Wait(11000)
         if Detcord then 
             ShakeGameplayCam('SMALL_EXPLOSION_SHAKE', 0.5)

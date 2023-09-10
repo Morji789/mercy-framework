@@ -1,4 +1,5 @@
 EntityModule, FunctionsModule, BlipModule, PlayerModule, KeybindsModule, EventsModule, CallbackModule = nil, nil, nil, nil, nil, nil, nil
+Crouched = false
 local RelationshipTypes = {"PLAYER","COP","MISSION2","MISSION3","MISSION4","MISSION5","MISSION6","MISSION7","MISSION8"}
 -- local RadioStations = {
 -- 	'RADIO_01_CLASS_ROCK','RADIO_02_POP','RADIO_03_HIPHOP_NEW','RADIO_04_PUNK','RADIO_05_TALK_01','RADIO_06_COUNTRY','RADIO_07_DANCE_01','RADIO_08_MEXICAN','RADIO_09_HIPHOP_OLD',--[['RADIO_12_REGGAE',]]'RADIO_13_JAZZ','DLC_BATTLE_MIX4_CLUB_PRIV','DLC_BATTLE_MIX2_CLUB_PRIV','DLC_BATTLE_MIX1_CLUB_PRIV','RADIO_23_DLC_XM19_RADIO','RADIO_34_DLC_HEI4_KULT','RADIO_35_DLC_HEI4_MLR','RADIO_36_AUDIOPLAYER',
@@ -114,9 +115,14 @@ end)
 -- [ Functions ] --
 
 function LoadMapData()
+	local MapTries = 0
 	RequestStreamedTextureDict("squaremap", false)
 	while not HasStreamedTextureDictLoaded("squaremap") do
-		Wait(100)
+		Wait(250)
+		MapTries = MapTries + 1
+		if MapTries > 50 then
+			return print("Failed to load map textures, please report this to an admin. (No map asset found)")
+		end
 	end
 
 	AddReplaceTexture("platform:/textures/graphics", "radarmasksm", "squaremap", "radarmasksm")
@@ -199,6 +205,7 @@ function LoadPlayerRelations()
 	end)
 end
 
+
 function stringsplit(inputstr, sep)
     if sep == nil then
         sep = "%s"
@@ -253,8 +260,8 @@ function LoadMisc()
 			end
 		end
 
-		SetPedConfigFlag(PlayerPedId(), 184, true)
-		SetPedConfigFlag(PlayerPedId(), 35, false)
+		SetPedConfigFlag(PlayerPedId(), 184, true) -- Automatically shuffle
+		SetPedConfigFlag(PlayerPedId(), 35, false) -- Use helmet
 	
 		SetTrainTrackSpawnFrequency(3, 99999999999)
 		SetTrainTrackSpawnFrequency(0, 120000000)

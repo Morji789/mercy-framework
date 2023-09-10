@@ -42,13 +42,14 @@ end)
 
 -- Anti Peds / Vehs / Props
 Citizen.CreateThread(function()
+    BlockedModels = {}
     for _, Entities in pairs(Config.BlacklistedEntitys) do
         table.insert(BlockedModels, Entities)
     end
 end)
 
 AddEventHandler("entityCreating", function(Entity)
-    for _, Hash in pairs(BlockedModels) do
+    for Hash, _ in pairs(BlockedModels) do
         if Hash and GetEntityModel(Entity) == Hash then
             CancelEvent()
             break

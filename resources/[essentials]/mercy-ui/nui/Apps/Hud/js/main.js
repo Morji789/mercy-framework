@@ -162,7 +162,7 @@ Hud.addNuiListener('SetComponentValues', (Data) => {
     $.each(Data, function(Key, Value) {
         if (Key === 'Health') {
             if (Value.IsDead) {
-                Health.animate(0.0);
+                Health.animate(1.0);
                 Health.trail.setAttribute("stroke", "rgba(227, 14, 14, 1.0)");
                 return;
             }
@@ -395,8 +395,11 @@ Hud.addNuiListener('UpdateVehicleHud', (Data) => {
         Fuel.animate((Data.Fuel / 100) * 0.65);
         if (Data.IsAircraft) {
             var CalculatedSpeed = (Data.Altitude / 2000);
-            Alt.animate(Data.Altitude >= 1300 && 0.65 || CalculatedSpeed);
-            $('.hud-alt p span').html(Math.floor(Data.Altitude));
+            if ($('.hud-alt').is(':visible')) {
+                if (Alt === null) return;
+                Alt.animate(Data.Altitude >= 1300 && 0.65 || CalculatedSpeed);
+                $('.hud-alt p span').html(Math.floor(Data.Altitude));
+            }
         }
         if (HudPreferences.WaypointDistance) {
             if (Data.Waypoint <= 0) {

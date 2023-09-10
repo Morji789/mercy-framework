@@ -54,6 +54,7 @@ RegisterNetEvent('mercy-misc/client/steal-target-shoes', function(Data)
 end)
 
 RegisterNetEvent('mercy-misc/client/open-scav-box', function(BoxId)
+    if BoxId == nil then return end
     Citizen.SetTimeout(450, function()
         if exports['mercy-inventory']:CanOpenInventory() then
             EventsModule.TriggerServer('mercy-inventory/server/open-other-inventory', BoxId, 'Stash', 25, 500, 'scavbox')
@@ -101,20 +102,22 @@ RegisterNetEvent('mercy-misc/client/me', function(Source, Text)
     local Distance = 0.1
     
     local Ped = GetPlayerPed(GetPlayerFromServerId(Source))
-
     while Alpha > 0 do
         Alpha = Alpha - 1
-
-        local Pos = GetEntityCoords(Ped)
-        if GetVehiclePedIsUsing(Ped) ~= 0 then
-            Pos = GetPedBoneCoords(Ped, 0x4B2)
-            Distance = 0.2
-        end
-
         OutputAlpha = Alpha
-
         if OutputAlpha > 255 then OutputAlpha = 255 end
-        DrawMeText(Pos.x, Pos.y, Pos.z + (Distance * (MessageCount - 1)), Text, OutputAlpha)
+
+        local SourceCoords = GetEntityCoords(Ped)
+        local NearCoords = GetEntityCoords(PlayerPedId())
+        local PDist = #(SourceCoords - NearCoords)
+        if PDist < 25.0 then
+            if GetVehiclePedIsUsing(Ped) ~= 0 then
+                SourceCoords = GetPedBoneCoords(Ped, 0x4B2)
+                Distance = 0.2
+            end
+ 
+            DrawMeText(SourceCoords.x, SourceCoords.y, SourceCoords.z + (Distance * (MessageCount - 1)), Text, OutputAlpha)
+        end
         Citizen.Wait(1)
     end
     MessagesCount = MessagesCount - 1

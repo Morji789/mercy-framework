@@ -32,7 +32,17 @@ Citizen.CreateThread(function()
      FunctionsModule.CreateUseableItem("idcard", function(Source, Item)
         local Player = PlayerModule.GetPlayerBySource(Source)
         if Player.Functions.GetItemBySlot(Item.Slot) ~= nil then
-            TriggerClientEvent('mercy-chat/client/post-identification', Source, Item.Info.CitizenId, Item.Info.Firstname, Item.Info.Lastname, Item.Info.Date, Item.Info.Sex)
+            TriggerClientEvent('mercy-chat/client/send-identification', Source, Item.Info.CitizenId, Item.Info.Firstname, Item.Info.Lastname, Item.Info.Date, Item.Info.Sex)
+        end
+    end)
+
+    EventsModule.RegisterServer("mercy-items/server/show-identification", function(Source, CitizenId, Firstname, Lastname, Date, Sex, ClosestPlayer)
+        local Player = PlayerModule.GetPlayerBySource(Source)
+        if ClosestPlayer ~= nil then
+            TriggerClientEvent('mercy-chat/client/post-identification', ClosestPlayer, CitizenId, Firstname, Lastname, Date, Sex)
+            TriggerClientEvent('mercy-chat/client/post-identification', Source, CitizenId, Firstname, Lastname, Date, Sex)
+        else
+            TriggerClientEvent('mercy-chat/client/post-identification', Source, CitizenId, Firstname, Lastname, Date, Sex)
         end
     end)
 
@@ -192,7 +202,17 @@ Citizen.CreateThread(function()
     FunctionsModule.CreateUseableItem("pdbadge", function(Source, Item)
         local Player = PlayerModule.GetPlayerBySource(Source)
         if Player.Functions.GetItemBySlot(Item.Slot) ~= nil then
-            TriggerClientEvent('mercy-police/client/show-badge', Source, Item.Info.Name, Item.Info.Rank, Item.Info.Department, Item.Info.Image)
+            TriggerClientEvent('mercy-police/client/post-badge', Source, Item.Info.Name, Item.Info.Rank, Item.Info.Department, Item.Info.Image)
+        end
+    end)
+
+    EventsModule.RegisterServer("mercy-items/server/show-badge", function(Source, Name, Rank, Department, Image, ClosestPlayer)
+        local Player = PlayerModule.GetPlayerBySource(Source)
+        if ClosestPlayer ~= nil then
+            TriggerClientEvent('mercy-police/client/show-badge', ClosestPlayer, Name, Rank, Department, Image)
+            TriggerClientEvent('mercy-police/client/show-badge', Source, Name, Rank, Department, Image)
+        else
+            TriggerClientEvent('mercy-police/client/show-badge', Source, Name, Rank, Department, Image)
         end
     end)
 
@@ -622,6 +642,13 @@ Citizen.CreateThread(function()
         end
     end)
 
+    FunctionsModule.CreateUseableItem("tracker-disabler", function(Source, Item)
+        local Player = PlayerModule.GetPlayerBySource(Source)
+        if Player.Functions.GetItemBySlot(Item.Slot) ~= nil then
+            TriggerClientEvent('mercy-items/client/used-tracker-disabler', Source)
+        end
+    end)
+
     -- Parts
     
     -- Axle
@@ -955,86 +982,26 @@ Citizen.CreateThread(function()
 
     -- Sprays
     
-    FunctionsModule.CreateUseableItem("spray-angels", function(Source, Item)
-        local Player = PlayerModule.GetPlayerBySource(Source)
-        if Player.Functions.GetItemBySlot(Item.Slot) ~= nil then
-            TriggerClientEvent('mercy-misc/client/used-spay-can', Source, 'spray-angels', 'np_sprays_angels')
-        end
-    end)
-
-   
+    for k, SprayName in pairs(Config.Sprays) do
+        FunctionsModule.CreateUseableItem("spray-"..SprayName, function(Source, Item)
+            local Player = PlayerModule.GetPlayerBySource(Source)
+            if Player.Functions.GetItemBySlot(Item.Slot) ~= nil then
+                TriggerClientEvent('mercy-misc/client/sprays/use', Source, "spray-"..SprayName, 'np_sprays_'..SprayName)
+            end
+        end)
+    end
     
     -- Chains
 
-    -- FunctionsModule.CreateUseableItem("cerberus-chain", function(Source, Item)
-    --     local Player = PlayerModule.GetPlayerBySource(Source)
-    --     if Player.Functions.GetItemBySlot(Item.Slot) ~= nil then
-    --         TriggerClientEvent('mercy-items/client/use-chain', Source, 'cerberus-chain')
-    --     end
-    -- end)
+    for k, ChainName in pairs(Config.Chains) do
+        FunctionsModule.CreateUseableItem(ChainName.."-chain", function(Source, Item)
+            local Player = PlayerModule.GetPlayerBySource(Source)
+            if Player.Functions.GetItemBySlot(Item.Slot) ~= nil then
+                TriggerClientEvent('mercy-items/client/use-chain', Source, ChainName.."-chain")
+            end
+        end)
+    end
 
-    -- FunctionsModule.CreateUseableItem("cg-chain", function(Source, Item)
-    --     local Player = PlayerModule.GetPlayerBySource(Source)
-    --     if Player.Functions.GetItemBySlot(Item.Slot) ~= nil then
-    --         TriggerClientEvent('mercy-items/client/use-chain', Source, 'cg-chain')
-    --     end
-    -- end)
-
-    -- FunctionsModule.CreateUseableItem("cg2-chain", function(Source, Item)
-    --     local Player = PlayerModule.GetPlayerBySource(Source)
-    --     if Player.Functions.GetItemBySlot(Item.Slot) ~= nil then
-    --         TriggerClientEvent('mercy-items/client/use-chain', Source, 'cg2-chain')
-    --     end
-    -- end)
-
-    -- FunctionsModule.CreateUseableItem("gg-chain", function(Source, Item)
-    --     local Player = PlayerModule.GetPlayerBySource(Source)
-    --     if Player.Functions.GetItemBySlot(Item.Slot) ~= nil then
-    --         TriggerClientEvent('mercy-items/client/use-chain', Source, 'gg-chain')
-    --     end
-    -- end)
-
-    -- FunctionsModule.CreateUseableItem("gsf-chain", function(Source, Item)
-    --     local Player = PlayerModule.GetPlayerBySource(Source)
-    --     if Player.Functions.GetItemBySlot(Item.Slot) ~= nil then
-    --         TriggerClientEvent('mercy-items/client/use-chain', Source, 'gsf-chain')
-    --     end
-    -- end)
-    
-    -- FunctionsModule.CreateUseableItem("koil-chain", function(Source, Item)
-    --     local Player = PlayerModule.GetPlayerBySource(Source)
-    --     if Player.Functions.GetItemBySlot(Item.Slot) ~= nil then
-    --         TriggerClientEvent('mercy-items/client/use-chain', Source, 'koil-chain')
-    --     end
-    -- end)
-
-    -- FunctionsModule.CreateUseableItem("mdm-chain", function(Source, Item)
-    --     local Player = PlayerModule.GetPlayerBySource(Source)
-    --     if Player.Functions.GetItemBySlot(Item.Slot) ~= nil then
-    --         TriggerClientEvent('mercy-items/client/use-chain', Source, 'mdm-chain')
-    --     end
-    -- end)
-
-    -- FunctionsModule.CreateUseableItem("nbc-chain", function(Source, Item)
-    --     local Player = PlayerModule.GetPlayerBySource(Source)
-    --     if Player.Functions.GetItemBySlot(Item.Slot) ~= nil then
-    --         TriggerClientEvent('mercy-items/client/use-chain', Source, 'nbc-chain')
-    --     end
-    -- end)
-
-    -- FunctionsModule.CreateUseableItem("rl-chain", function(Source, Item)
-    --     local Player = PlayerModule.GetPlayerBySource(Source)
-    --     if Player.Functions.GetItemBySlot(Item.Slot) ~= nil then
-    --         TriggerClientEvent('mercy-items/client/use-chain', Source, 'rl-chain')
-    --     end
-    -- end)
-
-    -- FunctionsModule.CreateUseableItem("seaside-chain", function(Source, Item)
-    --     local Player = PlayerModule.GetPlayerBySource(Source)
-    --     if Player.Functions.GetItemBySlot(Item.Slot) ~= nil then
-    --         TriggerClientEvent('mercy-items/client/use-chain', Source, 'seaside-chain')
-    --     end
-    -- end)
 
     -- [ Events ] --
 

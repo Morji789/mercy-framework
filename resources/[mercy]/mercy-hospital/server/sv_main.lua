@@ -30,6 +30,23 @@ Citizen.CreateThread(function()
         end
     end)
 
+    CallbackModule.CreateCallback('mercy-hospital/server/get-samples', function(Source, Cb, Type)
+        local Player = PlayerModule.GetPlayerBySource(Source)
+        if not Player then return Cb(false) end
+
+        local EvidenceList = {}
+        for k, Item in pairs(Player.PlayerData.Inventory) do
+            if Item.ItemName == Type then
+                table.insert(EvidenceList, Item)
+            end
+        end
+        if #EvidenceList > 0 then
+            Cb(EvidenceList)
+        else
+            Cb(false)
+        end
+    end)
+
     -- [ Commands ] -- 
     CommandsModule.Add("revive", "Revive yourself", {}, false, function(source, args)
         local Player = PlayerModule.GetPlayerBySource(source)
@@ -99,6 +116,10 @@ Citizen.CreateThread(function()
         end
     end)
 
+    EventsModule.RegisterServer('mercy-hospital/server/receive-result', function(Source, Data)
+        TriggerClientEvent('mercy-chat/client/post-message', Source, "Blood Result #"..Data.Blood, "Type: "..Data.Type, "error")
+    end)
+
     EventsModule.RegisterServer("mercy-hospital/server/heal-player", function(Source, ServerId)
         local TargetPlayer = PlayerModule.GetPlayerBySource(ServerId)
         if TargetPlayer ~= nil then
@@ -126,11 +147,12 @@ RegisterNetEvent("mercy-hospital/server/set-hospital-bed-busy", function(BedId, 
     TriggerClientEvent('mercy-hospital/client/set-hospital-bed-busy', -1, BedId, Bool)
 end)
 
-RegisterNetEvent("mercy-hospital/server/save-armor", function(PArmor)
+RegisterNetEvent("mercy-hospital/server/save-vitals", function(PArmor, PHealth)
     if PlayerModule == nil then return end
     local src = source
     local Player = PlayerModule.GetPlayerBySource(src)
     if Player then
+        Player.Functions.SetMetaData('Health', PHealth)
         Player.Functions.SetMetaData('Armor', PArmor)
     end
 end)

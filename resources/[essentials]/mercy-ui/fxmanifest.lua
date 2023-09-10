@@ -5,10 +5,6 @@ lua54 'yes'
 
 ui_page 'nui/index.html'
 
-dependencies {
-    'mercy-polyzone',
-}
-
 client_script {
     '@mercy-assets/client/cl_errorlog.lua',
     '@mercy-polyzone/client/cl_main.lua',
@@ -27,8 +23,6 @@ server_script {
     '@mercy-assets/server/sv_errorlog.lua',
     '@mercy-base/shared/sh_shared.lua',
     'shared/sh_*.lua',
-    -- 'shared/sv_*.lua',
-    -- 'config/sv_*.lua',
     'server/*.lua',
 }
 
@@ -44,6 +38,7 @@ files {
     'nui/fonts/*.woff',
     'nui/fonts/*.woff2',
     'nui/fonts/*.ttf',
+    'nui/fonts/*.otf',
     'nui/css/*.css',
     'nui/js/*.js',
     'nui/Apps/**/*.html',
